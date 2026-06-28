@@ -68,7 +68,7 @@ flask --app run.py init-db
 flask --app run.py seed-db
 
 # 5. Run the app
-python run.py
+python app.py
 ```
 
 Visit **http://127.0.0.1:5000** and log in with:
@@ -114,7 +114,7 @@ smartex-inventory/
 ├── sql/                         # MySQL schema script
 ├── instance/                    # SQLite database file lives here (gitignored)
 ├── requirements.txt
-├── run.py                       # Application entry point
+├── app.py                       # Application entry point
 └── .env.example
 ```
 
