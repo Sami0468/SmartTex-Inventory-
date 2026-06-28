@@ -21,7 +21,6 @@ qrcode==8.2
 python-barcode==0.16.1
 pillow==12.1.1
 
-# Production server (optional)
 gunicorn==23.0.0
 
 # MySQL driver (for production deployment — uncomment when migrating from SQLite)
