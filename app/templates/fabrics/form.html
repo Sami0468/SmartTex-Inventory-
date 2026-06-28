@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Fabric · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Inventory</div>
+    <h1>{{ 'Edit Fabric' if mode == 'edit' else 'Add New Fabric' }}</h1>
+    <p class="subtitle">{{ 'Update fabric specifications and pricing.' if mode == 'edit' else 'Register a new fabric roll into inventory.' }}</p>
+  </div>
+  <a href="{{ url_for('fabrics.list_fabrics') }}" class="btn btn-outline">← Back to Inventory</a>
+</div>
+
+<form method="POST" novalidate>
+  {{ form.hidden_tag() }}
+  <div class="grid" style="grid-template-columns: 2fr 1fr; align-items:flex-start;">
+    <div class="card selvage-edge">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 18px;">Fabric Specifications</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">{{ form.name.label.text }} <span class="req">*</span></label>
+            {{ form.name(class="form-control", placeholder="e.g. Premium Combed Cotton") }}
+            {% for error in form.name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ form.fabric_type.label.text }} <span class="req">*</span></label>
+            {{ form.fabric_type(class="form-control") }}
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">{{ form.gsm.label.text }}</label>
+            {{ form.gsm(class="form-control", placeholder="e.g. 180") }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ form.width_inches.label.text }}</label>
+            {{ form.width_inches(class="form-control", placeholder="e.g. 58") }}
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">{{ form.color.label.text }}</label>
+            {{ form.color(class="form-control", placeholder="e.g. Navy Blue") }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ form.pattern.label.text }}</label>
+            {{ form.pattern(class="form-control", placeholder="e.g. Plain, Striped, Printed") }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ form.roll_number.label.text }}</label>
+            {{ form.roll_number(class="form-control", placeholder="e.g. R-2026-014") }}
+          </div>
+        </div>
+
+        <div class="thread-divider"></div>
+        <h3 style="font-size:15px; margin:0 0 18px;">Stock &amp; Pricing</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">{{ form.quantity_meters.label.text }} <span class="req">*</span></label>
+            {{ form.quantity_meters(class="form-control", placeholder="0.0", **({'disabled': True} if mode == 'edit' else {})) }}
+            {% if mode == 'edit' %}<div class="form-text">Use "Adjust Stock" on the fabric detail page to change quantity (keeps an audit trail).</div>{% endif %}
+            {% for error in form.quantity_meters.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ form.low_stock_threshold.label.text }}</label>
+            {{ form.low_stock_threshold(class="form-control", placeholder="100") }}
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">{{ form.unit_cost.label.text }} <span class="req">*</span></label>
+            {{ form.unit_cost(class="form-control", placeholder="0.00") }}
+            {% for error in form.unit_cost.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ form.selling_price.label.text }} <span class="req">*</span></label>
+            {{ form.selling_price(class="form-control", placeholder="0.00") }}
+            {% for error in form.selling_price.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 18px;">Location &amp; Source</h3>
+        <div class="form-group">
+          <label class="form-label">{{ form.warehouse_id.label.text }} <span class="req">*</span></label>
+          {{ form.warehouse_id(class="form-control") }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.supplier_id.label.text }}</label>
+          {{ form.supplier_id(class="form-control") }}
+        </div>
+        <div class="thread-divider"></div>
+        {{ form.submit(class="btn btn-accent btn-block") }}
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

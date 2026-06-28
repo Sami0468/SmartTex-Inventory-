@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Workers &amp; Payroll · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Operations</div>
+    <h1>Workers &amp; Payroll</h1>
+    <p class="subtitle">{{ workers|length }} active worker{{ 's' if workers|length != 1 }}.</p>
+  </div>
+  {% if current_user.has_role('Admin', 'Production Manager') %}
+  <a href="{{ url_for('workers.add_worker') }}" class="btn btn-accent">{{ icon('plus') }} Add Worker</a>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-body" style="padding:16px 20px;">
+    <form method="GET">
+      <select class="form-control" name="department" style="max-width:240px;" onchange="this.form.submit()">
+        <option value="">All Departments</option>
+        {% for d in departments %}<option value="{{ d }}" {{ 'selected' if d == dept_filter }}>{{ d }}</option>{% endfor %}
+      </select>
+    </form>
+  </div>
+</div>
+
+{% if workers %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Name</th><th>Code</th><th>Department</th><th>Designation</th><th>Base Salary</th><th></th></tr></thead>
+    <tbody>
+      {% for w in workers %}
+      <tr>
+        <td><strong>{{ w.name }}</strong></td>
+        <td class="cell-mono">{{ w.worker_code }}</td>
+        <td>{{ w.department }}</td>
+        <td class="cell-muted">{{ w.designation or '—' }}</td>
+        <td>Rs. {{ "%.0f"|format(w.base_salary) }}</td>
+        <td style="text-align:right;">
+          <a href="{{ url_for('workers.view_worker', worker_id=w.id) }}" class="icon-btn" title="View">{{ icon('eye', 16) }}</a>
+          {% if current_user.has_role('Admin', 'Production Manager') %}
+          <a href="{{ url_for('workers.edit_worker', worker_id=w.id) }}" class="icon-btn" title="Edit">{{ icon('edit', 16) }}</a>
+          {% endif %}
+          {% if current_user.is_admin %}
+          <form method="POST" action="{{ url_for('workers.delete_worker', worker_id=w.id) }}" style="display:inline;" data-confirm="Remove {{ w.name }} from active workers? This can't be undone from the UI.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="icon-btn" title="Delete" style="color:var(--danger);">{{ icon('trash', 16) }}</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card"><div class="empty-state">{{ icon('workers', 48) }}<h3>No workers found</h3><p>Add your first worker to start tracking attendance and payroll.</p></div></div>
+{% endif %}
+{% endblock %}

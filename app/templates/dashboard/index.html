@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Dashboard · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Overview</div>
+    <h1>Dashboard</h1>
+    <p class="subtitle">Welcome back, {{ current_user.full_name.split(' ')[0] }}. Here's what's happening across your operations.</p>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-4" style="margin-bottom:24px;">
+  <div class="stat-card selvage-edge">
+    <div class="stat-icon icon-bg-indigo">{{ icon('fabric') }}</div>
+    <div class="stat-value">{{ total_fabric_types }}</div>
+    <div class="stat-label">Fabric Types</div>
+  </div>
+  <div class="stat-card selvage-edge">
+    <div class="stat-icon icon-bg-sage">{{ icon('package') }}</div>
+    <div class="stat-value">{{ "%.0f"|format(total_stock) }}m</div>
+    <div class="stat-label">Total Stock Available</div>
+  </div>
+  <div class="stat-card selvage-edge">
+    <div class="stat-icon icon-bg-amber">{{ icon('supplier') }}</div>
+    <div class="stat-value">{{ total_suppliers }}</div>
+    <div class="stat-label">Total Suppliers</div>
+  </div>
+  <div class="stat-card selvage-edge">
+    <div class="stat-icon icon-bg-terracotta">{{ icon('customers') }}</div>
+    <div class="stat-value">{{ total_customers }}</div>
+    <div class="stat-label">Total Customers</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-4" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-amber">{{ icon('sales') }}</div>
+    <div class="stat-value">Rs. {{ "%.0f"|format(total_sales) }}</div>
+    <div class="stat-label">Total Sales Revenue</div>
+    {% if revenue_growth_pct is not none %}
+    <span class="stat-delta {{ 'up' if revenue_growth_pct >= 0 else 'down' }}">
+      {{ icon('arrow-up' if revenue_growth_pct >= 0 else 'arrow-down', 12) }} {{ revenue_growth_pct }}% vs last month
+    </span>
+    {% endif %}
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-indigo">{{ icon('production') }}</div>
+    <div class="stat-value">{{ total_production_orders }}</div>
+    <div class="stat-label">Total Production Orders</div>
+    <span class="stat-delta flat">{{ active_production_count }} active</span>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-sage">{{ icon('reports') }}</div>
+    <div class="stat-value">Rs. {{ "%.0f"|format(total_stock_value) }}</div>
+    <div class="stat-label">Inventory Value (at cost)</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-terracotta">{{ icon('alert-triangle') }}</div>
+    <div class="stat-value">{{ low_stock|length }}</div>
+    <div class="stat-label">Low Stock Alerts</div>
+    {% if low_stock %}<span class="stat-delta down">Needs attention</span>{% endif %}
+  </div>
+</div>
+
+<!-- Charts row 1 -->
+<div class="grid" style="grid-template-columns: 1.6fr 1fr; margin-bottom:24px; align-items:flex-start;">
+  <div class="card selvage-edge">
+    <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Monthly Sales</h3></div>
+    <div class="card-body"><canvas id="salesChart" height="110"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Production Status</h3></div>
+    <div class="card-body"><canvas id="productionChart" height="180"></canvas></div>
+  </div>
+</div>
+
+<!-- Charts row 2 -->
+<div class="grid grid-cols-2" style="margin-bottom:24px; align-items:flex-start;">
+  <div class="card">
+    <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Inventory by Fabric Type</h3></div>
+    <div class="card-body"><canvas id="inventoryChart" height="200"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Fabric Usage (Last 90 Days)</h3></div>
+    <div class="card-body"><canvas id="usageChart" height="200"></canvas></div>
+  </div>
+</div>
+
+<!-- Low stock + recent activity -->
+<div class="grid" style="grid-template-columns: 1fr 1fr; align-items:flex-start;">
+  <div class="card selvage-edge">
+    <div class="card-header-flat">
+      <h3 style="font-size:15px; margin:0;">{{ icon('alert-triangle', 16) }} Low Stock Alerts</h3>
+      <a href="{{ url_for('fabrics.list_fabrics', stock='low') }}" class="text-sm" style="font-weight:600;">View all →</a>
+    </div>
+    <div class="card-body">
+      {% if low_stock %}
+      {% for f in low_stock[:6] %}
+      <div class="flex-between" style="padding:10px 0; border-bottom:1px solid var(--border-subtle);">
+        <div>
+          <div style="font-weight:600; font-size:13.5px;">{{ f.name }}</div>
+          <div class="text-sm text-muted">{{ f.fabric_code }}</div>
+        </div>
+        <span class="pill pill-danger">{{ "%.0f"|format(f.available_meters) }}m left</span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state">{{ icon('check-circle', 40) }}<h3>All stocked up</h3><p>No fabrics below their threshold.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header-flat">
+      <h3 style="font-size:15px; margin:0;">{{ icon('audit', 16) }} Recent Activity</h3>
+      {% if current_user.is_admin %}<a href="{{ url_for('audit.list_logs') }}" class="text-sm" style="font-weight:600;">View all →</a>{% endif %}
+    </div>
+    <div class="card-body">
+      {% if recent_logs %}
+      {% for log in recent_logs %}
+      <div style="padding:10px 0; border-bottom:1px solid var(--border-subtle);">
+        <div class="text-sm"><strong>{{ log.user.full_name if log.user else 'System' }}</strong> {{ log.description or (log.action + ' on ' + log.module) }}</div>
+        <div class="text-sm text-muted">{{ log.created_at.strftime('%d %b, %H:%M') }}</div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state">{{ icon('audit', 40) }}<h3>No activity yet</h3></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+<script>
+const palette = { indigo: '#1B2A4A', amber: '#D98E3F', sage: '#5E8C6A', terracotta: '#C75D43', light: '#ECE3D1' };
+
+new Chart(document.getElementById('salesChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ monthly_sales_labels|tojson }},
+    datasets: [{ label: 'Sales (Rs.)', data: {{ monthly_sales_values|tojson }}, backgroundColor: palette.amber, borderRadius: 6 }]
+  },
+  options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+});
+
+new Chart(document.getElementById('productionChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ status_labels|tojson }},
+    datasets: [{ data: {{ status_values|tojson }}, backgroundColor: [palette.indigo, palette.amber, palette.sage, palette.terracotta, '#A6A49A'] }]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } }
+});
+
+new Chart(document.getElementById('inventoryChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ fabric_type_labels|tojson }},
+    datasets: [{ label: 'Available (m)', data: {{ fabric_type_values|tojson }}, backgroundColor: palette.indigo, borderRadius: 6 }]
+  },
+  options: { responsive: true, indexAxis: 'y', plugins: { legend: { display: false } } }
+});
+
+new Chart(document.getElementById('usageChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ usage_labels|tojson }},
+    datasets: [{ label: 'Used (m)', data: {{ usage_values|tojson }}, backgroundColor: palette.sage, borderRadius: 6 }]
+  },
+  options: { responsive: true, plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}

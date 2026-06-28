@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ order.production_code }} · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Production Order</div>
+    <h1>{{ order.product_name }}</h1>
+    <p class="subtitle">{{ order.production_code }} · Fabric: {{ order.fabric.name }}</p>
+  </div>
+  <a href="{{ url_for('production.list_orders') }}" class="btn btn-outline">← Back</a>
+</div>
+
+<div class="grid grid-cols-4" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-indigo">{{ icon('fabric') }}</div>
+    <div class="stat-value">{{ "%.1f"|format(order.quantity_required_meters) }}m</div>
+    <div class="stat-label">Quantity Required</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-sage">{{ icon('production') }}</div>
+    <div class="stat-value">{{ "%.1f"|format(order.quantity_used_meters or 0) }}m</div>
+    <div class="stat-label">Used So Far</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-terracotta">{{ icon('alert-triangle') }}</div>
+    <div class="stat-value">{{ "%.1f"|format(order.waste_meters or 0) }}m</div>
+    <div class="stat-label">Waste</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-amber">{{ icon('reports') }}</div>
+    <div class="stat-value">{{ order.efficiency_pct if order.efficiency_pct is not none else '—' }}{% if order.efficiency_pct is not none %}%{% endif %}</div>
+    <div class="stat-label">Material Efficiency</div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; align-items:flex-start;">
+  <div class="card selvage-edge">
+    <div class="card-body">
+      <h3 style="font-size:15px; margin:0 0 18px;">Order Details</h3>
+      <div class="grid grid-cols-2" style="margin-bottom:20px;">
+        <div><div class="text-sm text-muted">Status</div>
+          {% set pill_map = {'Pending':'pill-neutral','Approved':'pill-info','In Progress':'pill-warning','Completed':'pill-success','Delayed':'pill-danger'} %}
+          <span class="pill {{ pill_map.get(order.status, 'pill-neutral') }}">{{ order.status }}</span>
+        </div>
+        <div><div class="text-sm text-muted">Assigned Team</div><div style="font-weight:600;">{{ order.assigned_team or '—' }}</div></div>
+        <div><div class="text-sm text-muted">Start Date</div><div style="font-weight:600;">{{ order.start_date.strftime('%d %b %Y') if order.start_date else '—' }}</div></div>
+        <div><div class="text-sm text-muted">Deadline</div><div style="font-weight:600; {{ 'color:var(--danger);' if order.is_overdue }}">{{ order.deadline.strftime('%d %b %Y') if order.deadline else '—' }}{% if order.is_overdue %} (Overdue){% endif %}</div></div>
+        {% if order.completed_date %}<div><div class="text-sm text-muted">Completed</div><div style="font-weight:600;">{{ order.completed_date.strftime('%d %b %Y') }}</div></div>{% endif %}
+      </div>
+      <div class="flex-between text-sm" style="margin-bottom:6px;"><span class="text-muted">Progress</span><strong>{{ order.progress_pct }}%</strong></div>
+      <div class="progress-track" style="margin-bottom:20px;"><div class="progress-fill" style="width:{{ order.progress_pct }}%;"></div></div>
+      {% if order.notes %}<div class="thread-divider"></div><div class="text-sm"><span class="text-muted">Notes:</span> {{ order.notes }}</div>{% endif %}
+    </div>
+  </div>
+
+  {% if current_user.has_role('Admin', 'Production Manager') %}
+  <div class="card">
+    <div class="card-body">
+      <h3 style="font-size:15px; margin:0 0 16px;">Update Production</h3>
+      <form method="POST" action="{{ url_for('production.update_order', order_id=order.id) }}">
+        {{ update_form.hidden_tag() }}
+        <div class="form-group">
+          <label class="form-label">{{ update_form.status.label.text }}</label>
+          {{ update_form.status(class="form-control") }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ update_form.quantity_used_meters.label.text }}</label>
+          {{ update_form.quantity_used_meters(class="form-control", placeholder="0.0", value=order.quantity_used_meters) }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ update_form.waste_meters.label.text }}</label>
+          {{ update_form.waste_meters(class="form-control", placeholder="0.0", value=order.waste_meters) }}
+        </div>
+        <div class="form-text" style="margin-bottom:14px;">Reserved fabric available: {{ "%.1f"|format(order.fabric.reserved_meters) }}m</div>
+        {{ update_form.submit(class="btn btn-accent btn-block") }}
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

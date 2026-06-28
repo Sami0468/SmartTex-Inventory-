@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}AI Insights · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">AI Tools</div>
+    <h1>AI Insights Dashboard</h1>
+    <p class="subtitle">Forecasts and recommendations generated from your live data.</p>
+  </div>
+  <a href="{{ url_for('ai_assistant.chat') }}" class="btn btn-outline">← Back to Chat</a>
+</div>
+
+<!-- Sales Forecast -->
+<div class="card selvage-edge" style="margin-bottom:24px;">
+  <div class="card-header-flat">
+    <h3 style="font-size:15px; margin:0;">{{ icon('sales', 16) }} Sales Revenue Forecast (Next 3 Months)</h3>
+    <span class="pill {{ 'pill-success' if sales_forecast.confidence == 'High' else 'pill-warning' if sales_forecast.confidence == 'Medium' else 'pill-neutral' }}">
+      Confidence: {{ sales_forecast.confidence }}
+    </span>
+  </div>
+  <div class="card-body">
+    <canvas id="salesForecastChart" height="90"></canvas>
+    <p class="text-sm text-muted" style="margin-top:14px;">{{ sales_forecast.message }}</p>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 1.3fr 1fr; align-items:flex-start; margin-bottom:24px;">
+  <!-- Reorder Recommendations -->
+  <div class="card">
+    <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">{{ icon('package', 16) }} Smart Reorder Recommendations</h3></div>
+    <div class="card-body">
+      {% if reorder_suggestions %}
+      <div class="table-wrap" style="border:none;">
+        <table class="data-table">
+          <thead><tr><th>Fabric</th><th>Available</th><th>Recommended Reorder</th><th>Basis</th></tr></thead>
+          <tbody>
+            {% for r in reorder_suggestions %}
+            <tr>
+              <td>{{ r.fabric.name }}</td>
+              <td>{{ "%.1f"|format(r.fabric.available_meters) }}m</td>
+              <td><strong>{{ "%.0f"|format(r.recommended_meters) }}m</strong></td>
+              <td class="text-sm text-muted">{{ 'Usage history' if r.basis == 'usage_history' else 'Threshold-based' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">{{ icon('check-circle', 40) }}<h3>No reorders needed right now</h3><p>All fabrics are sufficiently stocked.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Supplier Recommendation -->
+  <div class="card">
+    <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">{{ icon('supplier', 16) }} Supplier Ranking</h3></div>
+    <div class="card-body">
+      {% if supplier_ranking %}
+      {% for s in supplier_ranking %}
+      <div class="flex-between" style="padding:10px 0; border-bottom:1px solid var(--border-subtle);">
+        <div>
+          <div style="font-weight:600; font-size:13.5px;">{{ s.supplier }}</div>
+          <div class="text-sm text-muted">{{ s.note or (s.total_orders|string + ' orders') }}</div>
+        </div>
+        {% if s.score is not none %}
+        <span class="pill pill-info">{{ s.score }}/100</span>
+        {% else %}
+        <span class="pill pill-neutral">N/A</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+      <p class="text-sm text-muted" style="margin-top:14px;">Score weights: 40% on-time delivery, 35% cost competitiveness, 25% rating.</p>
+      {% else %}
+      <div class="empty-state">{{ icon('supplier', 40) }}<h3>No suppliers yet</h3></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Anomaly Detection -->
+<div class="card">
+  <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">{{ icon('alert-triangle', 16) }} Anomaly Detection — Recent Stock Movements</h3></div>
+  <div class="card-body">
+    <p class="text-sm text-muted" style="margin-bottom:16px;">{{ anomaly_result.message }}</p>
+    {% if anomaly_result.anomalies %}
+    <div class="table-wrap" style="border:none;">
+      <table class="data-table">
+        <thead><tr><th>Movement</th><th>Net Change</th><th>Z-Score</th><th>Severity</th></tr></thead>
+        <tbody>
+          {% for a in anomaly_result.anomalies %}
+          <tr>
+            <td>{{ a.label }}</td>
+            <td>{{ "%.1f"|format(a.value) }}m</td>
+            <td class="cell-mono">{{ a.z_score }}</td>
+            <td><span class="pill {{ 'pill-danger' if a.severity == 'High' else 'pill-warning' }}">{{ a.severity }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+<script>
+const historyLabels = {{ sales_history|map(attribute=0)|list|tojson }};
+const historyValues = {{ sales_history|map(attribute=1)|list|tojson }};
+const forecastValues = {{ sales_forecast.forecast|tojson }};
+
+// Build forecast labels continuing from history
+const forecastLabels = [];
+for (let i = 1; i <= forecastValues.length; i++) forecastLabels.push('+' + i + 'mo');
+
+const allLabels = historyLabels.concat(forecastLabels);
+const historyData = historyValues.concat(Array(forecastValues.length).fill(null));
+const forecastData = Array(historyValues.length - 1).fill(null).concat([historyValues[historyValues.length - 1]]).concat(forecastValues);
+
+new Chart(document.getElementById('salesForecastChart'), {
+  type: 'line',
+  data: {
+    labels: allLabels,
+    datasets: [
+      { label: 'Actual Revenue', data: historyData, borderColor: '#1B2A4A', backgroundColor: '#1B2A4A', tension: 0.3 },
+      { label: 'Forecast', data: forecastData, borderColor: '#D98E3F', borderDash: [6,4], backgroundColor: '#D98E3F', tension: 0.3 }
+    ]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+});
+</script>
+{% endblock %}

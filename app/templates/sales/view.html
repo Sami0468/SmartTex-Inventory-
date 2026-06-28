@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ order.invoice_number }} · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Invoice</div>
+    <h1>{{ order.invoice_number }}</h1>
+    <p class="subtitle">{{ order.customer.name }} · {{ order.order_date.strftime('%d %b %Y') if order.order_date }}</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('sales.list_orders') }}" class="btn btn-outline">← Back</a>
+    <a href="{{ url_for('sales.download_invoice_pdf', order_id=order.id) }}" class="btn btn-primary">{{ icon('download', 15) }} Download PDF</a>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; align-items:flex-start;">
+  <div class="card selvage-edge">
+    <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Items</h3></div>
+    <div class="card-body">
+      <div class="table-wrap" style="border:none;">
+        <table class="data-table">
+          <thead><tr><th>Fabric</th><th>Quantity</th><th>Unit Price</th><th>Subtotal</th></tr></thead>
+          <tbody>
+            {% for item in order.items %}
+            <tr>
+              <td>{{ item.fabric.name if item.fabric else '—' }}</td>
+              <td>{{ "%.1f"|format(item.quantity_meters) }}m</td>
+              <td>Rs. {{ "%.2f"|format(item.unit_price) }}</td>
+              <td><strong>Rs. {{ "%.2f"|format(item.subtotal) }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="thread-divider"></div>
+      <div class="flex-between text-sm" style="margin-bottom:6px;"><span class="text-muted">Subtotal</span><span>Rs. {{ "%.2f"|format(order.subtotal) }}</span></div>
+      <div class="flex-between text-sm" style="margin-bottom:6px;"><span class="text-muted">Tax ({{ order.tax_percent or 0 }}%)</span><span>Rs. {{ "%.2f"|format(order.tax_amount) }}</span></div>
+      {% if order.discount_amount %}<div class="flex-between text-sm" style="margin-bottom:6px;"><span class="text-muted">Discount</span><span>- Rs. {{ "%.2f"|format(order.discount_amount) }}</span></div>{% endif %}
+      <div class="flex-between" style="margin:12px 0 6px;"><strong>Total</strong><strong style="font-size:18px;">Rs. {{ "%.2f"|format(order.total_amount) }}</strong></div>
+      <div class="flex-between text-sm" style="margin-bottom:6px;"><span class="text-muted">Amount Paid</span><span>Rs. {{ "%.2f"|format(order.amount_paid) }}</span></div>
+      <div class="flex-between text-sm"><span class="text-muted">Balance Due</span><strong style="color:var(--danger);">Rs. {{ "%.2f"|format(order.balance_due) }}</strong></div>
+      {% if order.notes %}<div class="thread-divider"></div><div class="text-sm"><span class="text-muted">Notes:</span> {{ order.notes }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 14px;">Payment Status</h3>
+        {% set pay_map = {'Unpaid':'pill-danger','Partial':'pill-warning','Paid':'pill-success'} %}
+        <span class="pill {{ pay_map.get(order.payment_status, 'pill-neutral') }}">{{ order.payment_status }}</span>
+      </div>
+    </div>
+    {% if current_user.has_role('Admin', 'Sales Manager') and order.balance_due > 0 %}
+    <div class="card">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 16px;">Record Payment</h3>
+        <form method="POST" action="{{ url_for('sales.record_payment', order_id=order.id) }}">
+          {{ payment_form.hidden_tag() }}
+          <div class="form-group">{{ payment_form.amount(class="form-control", placeholder="Amount in Rs.") }}</div>
+          {{ payment_form.submit(class="btn btn-accent btn-block") }}
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

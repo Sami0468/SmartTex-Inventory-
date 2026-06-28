@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Reports · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Insights</div>
+    <h1>Reports</h1>
+    <p class="subtitle">Generate and export reports across all modules.</p>
+  </div>
+</div>
+
+<div class="grid grid-cols-3">
+  {% set icon_map = {'inventory':'fabric','suppliers':'supplier','warehouses':'warehouse','sales':'sales','production':'production','employees':'workers','financial':'reports'} %}
+  {% for key, label in report_types.items() %}
+  <div class="card selvage-edge">
+    <div class="card-body">
+      <div class="stat-icon icon-bg-indigo" style="margin-bottom:14px;">{{ icon(icon_map.get(key, 'reports')) }}</div>
+      <div style="font-weight:700; font-size:15px; margin-bottom:6px;">{{ label }}</div>
+      <p class="text-sm text-muted" style="margin:0 0 16px;">View on-screen or export as PDF, Excel, or CSV.</p>
+      <a href="{{ url_for('reports.view_report', report_type=key) }}" class="btn btn-outline btn-block btn-sm">{{ icon('arrow-right', 14) }} View Report</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

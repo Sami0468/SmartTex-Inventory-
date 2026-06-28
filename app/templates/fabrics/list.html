@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Fabric Inventory · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Inventory</div>
+    <h1>Fabric Inventory</h1>
+    <p class="subtitle">{{ total }} fabric{{ 's' if total != 1 }} in active inventory.</p>
+  </div>
+  {% if current_user.has_role('Admin', 'Inventory Manager') %}
+  <a href="{{ url_for('fabrics.add_fabric') }}" class="btn btn-accent">{{ icon('plus') }} Add Fabric</a>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-body" style="padding:16px 20px;">
+    <form method="GET" class="flex gap-3" style="flex-wrap:wrap; align-items:flex-end;">
+      <div class="form-group" style="margin:0; flex:2; min-width:220px;">
+        <label class="form-label">Search</label>
+        <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Fabric name, code, or color...">
+      </div>
+      <div class="form-group" style="margin:0; min-width:160px;">
+        <label class="form-label">Fabric Type</label>
+        <select class="form-control" name="type">
+          <option value="">All Types</option>
+          {% for t in fabric_types %}
+          <option value="{{ t }}" {{ 'selected' if t == fabric_type }}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="margin:0; min-width:160px;">
+        <label class="form-label">Stock Level</label>
+        <select class="form-control" name="stock">
+          <option value="">All Stock</option>
+          <option value="low" {{ 'selected' if stock_filter == 'low' }}>Low Stock Only</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit">{{ icon('filter', 15) }} Filter</button>
+      {% if q or fabric_type or stock_filter %}
+      <a href="{{ url_for('fabrics.list_fabrics') }}" class="btn btn-ghost">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+{% if fabrics %}
+<div class="table-wrap">
+  <table class="data-table" id="fabric-table">
+    <thead>
+      <tr>
+        <th>Fabric</th>
+        <th>Code</th>
+        <th>Type / GSM</th>
+        <th>Color</th>
+        <th>Available</th>
+        <th>Unit Cost</th>
+        <th>Selling Price</th>
+        <th>Warehouse</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for f in fabrics %}
+      <tr>
+        <td><strong>{{ f.name }}</strong>{% if f.roll_number %}<div class="text-sm text-muted">Roll #{{ f.roll_number }}</div>{% endif %}</td>
+        <td class="cell-mono">{{ f.fabric_code }}</td>
+        <td>{{ f.fabric_type }}{% if f.gsm %} <span class="cell-muted">· {{ f.gsm }}gsm</span>{% endif %}</td>
+        <td>{{ f.color or '—' }}</td>
+        <td><strong>{{ "%.1f"|format(f.available_meters) }}m</strong></td>
+        <td>Rs. {{ "%.0f"|format(f.unit_cost) }}</td>
+        <td>Rs. {{ "%.0f"|format(f.selling_price) }}</td>
+        <td>{{ f.warehouse.name if f.warehouse else '—' }}</td>
+        <td>
+          {% if f.is_low_stock %}<span class="pill pill-danger">Low Stock</span>
+          {% else %}<span class="pill pill-success">In Stock</span>{% endif %}
+        </td>
+        <td style="text-align:right;">
+          <a href="{{ url_for('fabrics.view_fabric', fabric_id=f.id) }}" class="icon-btn" title="View">{{ icon('eye', 16) }}</a>
+          {% if current_user.has_role('Admin', 'Inventory Manager') %}
+          <a href="{{ url_for('fabrics.edit_fabric', fabric_id=f.id) }}" class="icon-btn" title="Edit">{{ icon('edit', 16) }}</a>
+          {% endif %}
+          {% if current_user.is_admin %}
+          <form method="POST" action="{{ url_for('fabrics.delete_fabric', fabric_id=f.id) }}" style="display:inline;" data-confirm="Remove {{ f.name }} ({{ f.fabric_code }}) from active inventory? This can't be undone from the UI.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="icon-btn" title="Delete" style="color:var(--danger);">{{ icon('trash', 16) }}</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if total_pages > 1 %}
+<div class="flex gap-2" style="justify-content:center; margin-top:24px;">
+  {% for p in range(1, total_pages + 1) %}
+  <a href="{{ url_for('fabrics.list_fabrics', page=p, q=q, type=fabric_type, stock=stock_filter) }}"
+     class="btn btn-sm {{ 'btn-primary' if p == page else 'btn-outline' }}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="card"><div class="empty-state">
+  {{ icon('fabric', 48) }}
+  <h3>No fabrics found</h3>
+  <p>Try adjusting your filters, or add your first fabric to get started.</p>
+  {% if current_user.has_role('Admin', 'Inventory Manager') %}
+  <a href="{{ url_for('fabrics.add_fabric') }}" class="btn btn-accent" style="margin-top:12px;">{{ icon('plus') }} Add Fabric</a>
+  {% endif %}
+</div></div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ customer.name }} · SmartTex Inventory{% endblock %}
+{% block content %}
+{% if not customer.is_active %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  {{ icon('alert-triangle', 18) }}
+  <div>
+    This customer was deleted on {{ customer.deleted_at.strftime('%d %b %Y, %H:%M') if customer.deleted_at else 'an earlier date' }}
+    by {{ customer.deleted_by.full_name if customer.deleted_by else 'an admin' }}. They're hidden from the active
+    customer list and dropdowns, but kept here — and in any past invoices — for your records.
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('customers.restore_customer', customer_id=customer.id) }}" style="display:inline; margin-left:8px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline" style="vertical-align:middle;">{{ icon('check-circle', 13) }} Restore</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Customer Detail</div>
+    <h1>{{ customer.name }}</h1>
+    <p class="subtitle">{{ customer.customer_code }} · {{ customer.company_name or 'Individual customer' }}</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('customers.list_customers') }}" class="btn btn-outline">← Back</a>
+    {% if customer.is_active %}
+    {% if current_user.has_role('Admin', 'Sales Manager') %}
+    <a href="{{ url_for('customers.edit_customer', customer_id=customer.id) }}" class="btn btn-primary">{{ icon('edit', 15) }} Edit</a>
+    <a href="{{ url_for('sales.new_order', customer_id=customer.id) }}" class="btn btn-accent">{{ icon('plus', 15) }} New Sale</a>
+    {% endif %}
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('customers.delete_customer', customer_id=customer.id) }}" data-confirm="Remove {{ customer.name }} from active customers? This can't be undone from the UI.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger">{{ icon('trash', 15) }} Delete</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-3" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-amber">{{ icon('sales') }}</div>
+    <div class="stat-value">Rs. {{ "%.0f"|format(customer.total_purchases) }}</div>
+    <div class="stat-label">Total Purchases</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-indigo">{{ icon('reports') }}</div>
+    <div class="stat-value">{{ customer.order_count }}</div>
+    <div class="stat-label">Total Orders</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-sage">{{ icon('customers') }}</div>
+    <div class="stat-value">{{ customer.phone or '—' }}</div>
+    <div class="stat-label">Contact Number</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Purchase History</h3></div>
+  <div class="card-body">
+    {% if orders %}
+    <div class="table-wrap" style="border:none;">
+      <table class="data-table">
+        <thead><tr><th>Invoice #</th><th>Date</th><th>Payment</th><th>Total</th><th></th></tr></thead>
+        <tbody>
+          {% for o in orders %}
+          <tr>
+            <td class="cell-mono">{{ o.invoice_number }}</td>
+            <td class="cell-muted">{{ o.order_date.strftime('%d %b %Y') if o.order_date }}</td>
+            <td>
+              {% set pay_map = {'Unpaid':'pill-danger','Partial':'pill-warning','Paid':'pill-success'} %}
+              <span class="pill {{ pay_map.get(o.payment_status, 'pill-neutral') }}">{{ o.payment_status }}</span>
+            </td>
+            <td><strong>Rs. {{ "%.0f"|format(o.total_amount) }}</strong></td>
+            <td style="text-align:right;"><a href="{{ url_for('sales.view_order', order_id=o.id) }}" class="icon-btn">{{ icon('eye', 16) }}</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">{{ icon('sales', 40) }}<h3>No purchases yet</h3></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}My Profile · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Account</div>
+    <h1>My Profile</h1>
+    <p class="subtitle">Manage your personal information.</p>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 280px 1fr; align-items:flex-start;">
+  <div class="card selvage-edge">
+    <div class="card-body" style="text-align:center;">
+      <div class="avatar-circle" style="width:72px; height:72px; font-size:24px; margin:0 auto 14px;">{{ current_user.initials }}</div>
+      <div style="font-weight:700; font-size:16px;">{{ current_user.full_name }}</div>
+      <div class="text-muted text-sm" style="margin-bottom:10px;">{{ current_user.email }}</div>
+      <span class="pill pill-info">{{ current_user.role }}</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">{{ form.full_name.label.text }}</label>
+            {{ form.full_name(class="form-control") }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ form.phone.label.text }}</label>
+            {{ form.phone(class="form-control") }}
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-control" value="{{ current_user.username }}" disabled>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-control" value="{{ current_user.email }}" disabled>
+        </div>
+        {{ form.submit(class="btn btn-accent") }}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

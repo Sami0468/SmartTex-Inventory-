@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Production · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Operations</div>
+    <h1>Production Orders</h1>
+    <p class="subtitle">{{ orders|length }} order{{ 's' if orders|length != 1 }} total.</p>
+  </div>
+  {% if current_user.has_role('Admin', 'Production Manager') %}
+  <a href="{{ url_for('production.new_order') }}" class="btn btn-accent">{{ icon('plus') }} New Production Order</a>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-body" style="padding:16px 20px;">
+    <form method="GET" class="flex gap-3">
+      <select class="form-control" name="status" style="max-width:220px;" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        {% for s in statuses %}<option value="{{ s }}" {{ 'selected' if s == status_filter }}>{{ s }}</option>{% endfor %}
+      </select>
+    </form>
+  </div>
+</div>
+
+{% if orders %}
+<div class="grid grid-cols-3">
+  {% for o in orders %}
+  <div class="card selvage-edge">
+    <div class="card-body">
+      <div class="flex-between" style="margin-bottom:10px;">
+        <div>
+          <div style="font-weight:700; font-size:15px;">{{ o.product_name }}</div>
+          <div class="text-sm text-muted mono">{{ o.production_code }}</div>
+        </div>
+        {% set pill_map = {'Pending':'pill-neutral','Approved':'pill-info','In Progress':'pill-warning','Completed':'pill-success','Delayed':'pill-danger'} %}
+        <span class="pill {{ pill_map.get(o.status, 'pill-neutral') }}">{{ o.status }}</span>
+      </div>
+      <div class="text-sm text-muted" style="margin-bottom:4px;">Fabric: {{ o.fabric.name }}</div>
+      <div class="text-sm text-muted" style="margin-bottom:14px;">Team: {{ o.assigned_team or '—' }}</div>
+
+      <div class="flex-between text-sm" style="margin-bottom:6px;">
+        <span class="text-muted">Progress</span><strong>{{ o.progress_pct }}%</strong>
+      </div>
+      <div class="progress-track" style="margin-bottom:14px;">
+        <div class="progress-fill" style="width:{{ o.progress_pct }}%;"></div>
+      </div>
+
+      {% if o.is_overdue %}
+      <div class="pill pill-danger" style="margin-bottom:12px;">{{ icon('alert-triangle', 11) }} Overdue</div>
+      {% elif o.deadline %}
+      <div class="text-sm text-muted" style="margin-bottom:12px;">Deadline: {{ o.deadline.strftime('%d %b %Y') }}</div>
+      {% endif %}
+
+      <a href="{{ url_for('production.view_order', order_id=o.id) }}" class="btn btn-outline btn-block btn-sm">View Details</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="empty-state">{{ icon('production', 48) }}<h3>No production orders</h3><p>Create your first production order to begin tracking manufacturing.</p></div></div>
+{% endif %}
+{% endblock %}

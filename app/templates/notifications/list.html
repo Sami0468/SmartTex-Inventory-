@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Notifications · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Account</div>
+    <h1>Notifications</h1>
+    <p class="subtitle">{{ notifications|length }} notification{{ 's' if notifications|length != 1 }}.</p>
+  </div>
+  {% if notifications %}
+  <form method="POST" action="{{ url_for('notifications.mark_all_read') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-outline">Mark All as Read</button>
+  </form>
+  {% endif %}
+</div>
+
+{% if notifications %}
+<div class="card">
+  {% for n in notifications %}
+  <div style="padding:16px 20px; border-bottom:1px solid var(--border-subtle); display:flex; gap:14px; {{ 'background:var(--color-amber-100);' if not n.is_read }}">
+    {% set icon_map = {'low_stock':'alert-triangle','production_deadline':'production','supplier_payment':'supplier','sales_update':'sales','new_order':'package','system':'bell'} %}
+    <div class="stat-icon icon-bg-amber" style="width:36px; height:36px; flex-shrink:0;">{{ icon(icon_map.get(n.category, 'bell'), 16) }}</div>
+    <div style="flex:1;">
+      {% if n.link %}
+      <form method="POST" action="{{ url_for('notifications.mark_read', notif_id=n.id) }}" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" style="font-weight:600; font-size:14px; color:var(--text-primary); background:none; border:none; padding:0; text-align:left; cursor:pointer; text-decoration:underline; text-decoration-color:transparent;" onmouseover="this.style.textDecorationColor='currentColor'" onmouseout="this.style.textDecorationColor='transparent'">{{ n.title }}</button>
+      </form>
+      {% else %}
+      <div style="font-weight:600; font-size:14px;">{{ n.title }}</div>
+      {% endif %}
+      <div class="text-sm text-muted">{{ n.message }}</div>
+      <div class="text-sm text-muted" style="margin-top:4px;">{{ n.created_at.strftime('%d %b %Y, %H:%M') }}</div>
+    </div>
+    {% if not n.is_read %}
+    <form method="POST" action="{{ url_for('notifications.mark_read', notif_id=n.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-ghost">Mark Read</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="empty-state">{{ icon('bell', 48) }}<h3>No notifications</h3><p>You're all caught up.</p></div></div>
+{% endif %}
+{% endblock %}

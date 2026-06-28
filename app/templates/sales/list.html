@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Sales &amp; Invoices · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Commerce</div>
+    <h1>Sales &amp; Invoices</h1>
+    <p class="subtitle">{{ pagination.total }} total invoice{{ 's' if pagination.total != 1 }}.</p>
+  </div>
+  {% if current_user.has_role('Admin', 'Sales Manager') %}
+  <a href="{{ url_for('sales.new_order') }}" class="btn btn-accent">{{ icon('plus') }} New Invoice</a>
+  {% endif %}
+</div>
+
+{% if orders %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Items</th><th>Total</th><th>Payment</th><th></th></tr></thead>
+    <tbody>
+      {% for o in orders %}
+      <tr>
+        <td class="cell-mono">{{ o.invoice_number }}</td>
+        <td><strong>{{ o.customer.name }}</strong></td>
+        <td class="cell-muted">{{ o.order_date.strftime('%d %b %Y') if o.order_date }}</td>
+        <td class="cell-muted">{{ o.items.count() }} item{{ 's' if o.items.count() != 1 }}</td>
+        <td><strong>Rs. {{ "%.0f"|format(o.total_amount) }}</strong></td>
+        <td>
+          {% set pay_map = {'Unpaid':'pill-danger','Partial':'pill-warning','Paid':'pill-success'} %}
+          <span class="pill {{ pay_map.get(o.payment_status, 'pill-neutral') }}">{{ o.payment_status }}</span>
+        </td>
+        <td style="text-align:right;">
+          <a href="{{ url_for('sales.view_order', order_id=o.id) }}" class="icon-btn">{{ icon('eye', 16) }}</a>
+          <a href="{{ url_for('sales.download_invoice_pdf', order_id=o.id) }}" class="icon-btn">{{ icon('download', 16) }}</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if pagination.pages > 1 %}
+<div class="flex gap-2" style="justify-content:center; margin-top:24px;">
+  {% for p in range(1, pagination.pages + 1) %}
+  <a href="{{ url_for('sales.list_orders', page=p) }}" class="btn btn-sm {{ 'btn-primary' if p == pagination.page else 'btn-outline' }}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+{% else %}
+<div class="card"><div class="empty-state">{{ icon('sales', 48) }}<h3>No invoices yet</h3><p>Create your first sales invoice.</p></div></div>
+{% endif %}
+{% endblock %}

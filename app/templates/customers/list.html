@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Customers · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Commerce</div>
+    <h1>Customers</h1>
+    <p class="subtitle">{{ customers|length }} active customer{{ 's' if customers|length != 1 }}.</p>
+  </div>
+  {% if current_user.has_role('Admin', 'Sales Manager') %}
+  <a href="{{ url_for('customers.add_customer') }}" class="btn btn-accent">{{ icon('plus') }} Add Customer</a>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-body" style="padding:16px 20px;">
+    <form method="GET" class="flex gap-3">
+      <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Search by name, company, or phone...">
+      <button class="btn btn-primary" type="submit">{{ icon('search', 15) }} Search</button>
+    </form>
+  </div>
+</div>
+
+{% if customers %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Name</th><th>Code</th><th>Company</th><th>Phone</th><th>Total Purchases</th><th>Orders</th><th></th></tr></thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td><strong>{{ c.name }}</strong></td>
+        <td class="cell-mono">{{ c.customer_code }}</td>
+        <td class="cell-muted">{{ c.company_name or '—' }}</td>
+        <td class="cell-muted">{{ c.phone or '—' }}</td>
+        <td><strong>Rs. {{ "%.0f"|format(c.total_purchases) }}</strong></td>
+        <td>{{ c.order_count }}</td>
+        <td style="text-align:right;">
+          <a href="{{ url_for('customers.view_customer', customer_id=c.id) }}" class="icon-btn" title="View">{{ icon('eye', 16) }}</a>
+          {% if current_user.has_role('Admin', 'Sales Manager') %}
+          <a href="{{ url_for('customers.edit_customer', customer_id=c.id) }}" class="icon-btn" title="Edit">{{ icon('edit', 16) }}</a>
+          {% endif %}
+          {% if current_user.is_admin %}
+          <form method="POST" action="{{ url_for('customers.delete_customer', customer_id=c.id) }}" style="display:inline;" data-confirm="Remove {{ c.name }} from active customers? This can't be undone from the UI.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="icon-btn" title="Delete" style="color:var(--danger);">{{ icon('trash', 16) }}</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card"><div class="empty-state">{{ icon('customers', 48) }}<h3>No customers found</h3><p>Add your first customer to begin tracking sales.</p></div></div>
+{% endif %}
+{% endblock %}

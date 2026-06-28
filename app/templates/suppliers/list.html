@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Suppliers · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Procurement</div>
+    <h1>Suppliers</h1>
+    <p class="subtitle">{{ suppliers|length }} active supplier{{ 's' if suppliers|length != 1 }}.</p>
+  </div>
+  {% if current_user.has_role('Admin', 'Inventory Manager') %}
+  <a href="{{ url_for('suppliers.add_supplier') }}" class="btn btn-accent">{{ icon('plus') }} Add Supplier</a>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-body" style="padding:16px 20px;">
+    <form method="GET" class="flex gap-3">
+      <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="Search by company, contact, or country...">
+      <button class="btn btn-primary" type="submit">{{ icon('search', 15) }} Search</button>
+    </form>
+  </div>
+</div>
+
+{% if suppliers %}
+<div class="grid grid-cols-3">
+  {% for s in suppliers %}
+  <div class="card selvage-edge">
+    <div class="card-body">
+      <div class="flex-between" style="margin-bottom:12px;">
+        <div>
+          <div style="font-weight:700; font-size:15px;">{{ s.company_name }}</div>
+          <div class="text-sm text-muted mono">{{ s.supplier_code }}</div>
+        </div>
+        <span class="pill pill-info">★ {{ "%.1f"|format(s.rating) }}</span>
+      </div>
+      <div class="text-sm text-muted" style="margin-bottom:4px;">{{ s.contact_person or '—' }}</div>
+      <div class="text-sm text-muted" style="margin-bottom:4px;">{{ s.email or '—' }}</div>
+      <div class="text-sm text-muted" style="margin-bottom:14px;">{{ s.country or '—' }}</div>
+      <div class="thread-divider" style="margin:14px 0;"></div>
+      <div class="flex-between text-sm" style="margin-bottom:12px;">
+        <span class="text-muted">Total Purchases</span>
+        <strong>Rs. {{ "%.0f"|format(s.total_purchase_value) }}</strong>
+      </div>
+      <a href="{{ url_for('suppliers.view_supplier', supplier_id=s.id) }}" class="btn btn-outline btn-block btn-sm">View Details</a>
+      {% if current_user.is_admin %}
+      <form method="POST" action="{{ url_for('suppliers.delete_supplier', supplier_id=s.id) }}" data-confirm="Remove {{ s.company_name }} from active suppliers? This can't be undone from the UI." style="margin-top:8px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-block btn-sm">{{ icon('trash', 14) }} Delete Supplier</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="empty-state">
+  {{ icon('supplier', 48) }}
+  <h3>No suppliers found</h3>
+  <p>Add your first supplier to start tracking purchase orders.</p>
+</div></div>
+{% endif %}
+{% endblock %}

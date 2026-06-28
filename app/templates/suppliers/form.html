@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Supplier · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Procurement</div>
+    <h1>{{ 'Edit Supplier' if mode == 'edit' else 'Add New Supplier' }}</h1>
+  </div>
+  <a href="{{ url_for('suppliers.list_suppliers') }}" class="btn btn-outline">← Back to Suppliers</a>
+</div>
+
+<div class="card selvage-edge" style="max-width:640px;">
+  <div class="card-body">
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="form-group">
+        <label class="form-label">{{ form.company_name.label.text }} <span class="req">*</span></label>
+        {{ form.company_name(class="form-control") }}
+        {% for error in form.company_name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">{{ form.contact_person.label.text }}</label>
+          {{ form.contact_person(class="form-control") }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.phone.label.text }}</label>
+          {{ form.phone(class="form-control") }}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ form.email.label.text }}</label>
+        {{ form.email(class="form-control") }}
+        {% for error in form.email.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ form.address.label.text }}</label>
+        {{ form.address(class="form-control") }}
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">{{ form.country.label.text }}</label>
+          {{ form.country(class="form-control") }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.rating.label.text }}</label>
+          {{ form.rating(class="form-control", placeholder="0.0 – 5.0") }}
+        </div>
+      </div>
+      {{ form.submit(class="btn btn-accent") }}
+    </form>
+  </div>
+</div>
+{% endblock %}

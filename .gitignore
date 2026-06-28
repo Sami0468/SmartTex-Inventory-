@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+instance/*.db
+app/static/uploads/qrcodes/*.png
+app/static/uploads/barcodes/*.png
+!app/static/uploads/qrcodes/.gitkeep
+!app/static/uploads/barcodes/.gitkeep
+.venv/
+venv/
+*.egg-info/
+.DS_Store

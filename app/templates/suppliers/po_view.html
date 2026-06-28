@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ po.po_number }} · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Purchase Order</div>
+    <h1>{{ po.po_number }}</h1>
+    <p class="subtitle">{{ po.supplier.company_name }} · Ordered {{ po.order_date.strftime('%d %b %Y') if po.order_date }}</p>
+  </div>
+  <a href="{{ url_for('suppliers.view_supplier', supplier_id=po.supplier_id) }}" class="btn btn-outline">← Back to Supplier</a>
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; align-items:flex-start;">
+  <div class="card selvage-edge">
+    <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Order Items</h3></div>
+    <div class="card-body">
+      <div class="table-wrap" style="border:none;">
+        <table class="data-table">
+          <thead><tr><th>Description</th><th>Quantity</th><th>Unit Cost</th><th>Subtotal</th></tr></thead>
+          <tbody>
+            {% for item in po.items %}
+            <tr>
+              <td>{{ item.fabric.name if item.fabric else item.description or '—' }}</td>
+              <td>{{ "%.1f"|format(item.quantity_meters) }}m</td>
+              <td>Rs. {{ "%.2f"|format(item.unit_cost) }}</td>
+              <td><strong>Rs. {{ "%.2f"|format(item.subtotal) }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="thread-divider"></div>
+      <div class="flex-between"><span class="text-muted">Total Amount</span><strong style="font-size:18px;">Rs. {{ "%.2f"|format(po.total_amount) }}</strong></div>
+      <div class="flex-between text-sm" style="margin-top:6px;"><span class="text-muted">Amount Paid</span><span>Rs. {{ "%.2f"|format(po.amount_paid) }}</span></div>
+      <div class="flex-between text-sm" style="margin-top:6px;"><span class="text-muted">Balance Due</span><strong style="color:var(--danger);">Rs. {{ "%.2f"|format(po.balance_due) }}</strong></div>
+      {% if po.notes %}<div class="thread-divider"></div><div class="text-sm"><span class="text-muted">Notes:</span> {{ po.notes }}</div>{% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 16px;">Order Status</h3>
+        {% set pill_map = {'Pending':'pill-warning','Ordered':'pill-info','Received':'pill-success','Cancelled':'pill-danger'} %}
+        <span class="pill {{ pill_map.get(po.status, 'pill-neutral') }}" style="margin-bottom:16px; display:inline-flex;">{{ po.status }}</span>
+        {% if current_user.has_role('Admin', 'Inventory Manager') and po.status != 'Received' and po.status != 'Cancelled' %}
+        <form method="POST" action="{{ url_for('suppliers.update_po_status', po_id=po.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <select name="status" class="form-control" style="margin-bottom:10px;">
+            {% for s in po.STATUS_CHOICES %}<option value="{{ s }}" {{ 'selected' if s == po.status }}>{{ s }}</option>{% endfor %}
+          </select>
+          <button type="submit" class="btn btn-primary btn-block btn-sm">Update Status</button>
+        </form>
+        <p class="text-sm text-muted" style="margin-top:10px;">Marking as "Received" automatically adds quantities to linked fabric stock.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if current_user.has_role('Admin', 'Inventory Manager') and po.balance_due > 0 %}
+    <div class="card">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 16px;">Record Payment</h3>
+        <form method="POST" action="{{ url_for('suppliers.record_payment', po_id=po.id) }}">
+          {{ payment_form.hidden_tag() }}
+          <div class="form-group">
+            {{ payment_form.amount(class="form-control", placeholder="Amount in Rs.") }}
+          </div>
+          {{ payment_form.submit(class="btn btn-accent btn-block") }}
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

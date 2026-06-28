@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}History · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">System</div>
+    <h1>History</h1>
+    <p class="subtitle">Every deleted fabric, supplier, warehouse, worker, and customer — nothing is ever permanently erased. Restore anything from here.</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-body" style="padding:16px 20px;">
+    <div class="flex gap-2" style="flex-wrap:wrap;">
+      <a href="{{ url_for('history.index') }}" class="btn btn-sm {{ 'btn-primary' if not type_filter else 'btn-outline' }}">
+        All ({{ total }})
+      </a>
+      {% for key, cfg in type_config.items() %}
+      <a href="{{ url_for('history.index', type=key) }}" class="btn btn-sm {{ 'btn-primary' if type_filter == key else 'btn-outline' }}">
+        {{ icon(cfg.icon, 14) }} {{ cfg.label }} ({{ counts[key] }})
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% if entries %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>Item</th>
+        <th>Code</th>
+        <th>Deleted On</th>
+        <th>Deleted By</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td><span class="pill pill-neutral">{{ icon(e.icon, 12) }} {{ e.type_label }}</span></td>
+        <td><strong>{{ e.name }}</strong></td>
+        <td class="cell-mono">{{ e.code }}</td>
+        <td class="cell-muted">{{ e.deleted_at.strftime('%d %b %Y, %H:%M') if e.deleted_at else '—' }}</td>
+        <td class="cell-muted">{{ e.deleted_by }}</td>
+        <td style="text-align:right;">
+          {% if e.type_key == 'fabrics' %}
+          <a href="{{ url_for('fabrics.view_fabric', fabric_id=e.id) }}" class="icon-btn" title="View (read-only)">{{ icon('eye', 16) }}</a>
+          <form method="POST" action="{{ url_for('fabrics.restore_fabric', fabric_id=e.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline">{{ icon('check-circle', 14) }} Restore</button>
+          </form>
+          {% elif e.type_key == 'suppliers' %}
+          <a href="{{ url_for('suppliers.view_supplier', supplier_id=e.id) }}" class="icon-btn" title="View (read-only)">{{ icon('eye', 16) }}</a>
+          <form method="POST" action="{{ url_for('suppliers.restore_supplier', supplier_id=e.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline">{{ icon('check-circle', 14) }} Restore</button>
+          </form>
+          {% elif e.type_key == 'warehouses' %}
+          <a href="{{ url_for('warehouses.view_warehouse', warehouse_id=e.id) }}" class="icon-btn" title="View (read-only)">{{ icon('eye', 16) }}</a>
+          <form method="POST" action="{{ url_for('warehouses.restore_warehouse', warehouse_id=e.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline">{{ icon('check-circle', 14) }} Restore</button>
+          </form>
+          {% elif e.type_key == 'workers' %}
+          <a href="{{ url_for('workers.view_worker', worker_id=e.id) }}" class="icon-btn" title="View (read-only)">{{ icon('eye', 16) }}</a>
+          <form method="POST" action="{{ url_for('workers.restore_worker', worker_id=e.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline">{{ icon('check-circle', 14) }} Restore</button>
+          </form>
+          {% elif e.type_key == 'customers' %}
+          <a href="{{ url_for('customers.view_customer', customer_id=e.id) }}" class="icon-btn" title="View (read-only)">{{ icon('eye', 16) }}</a>
+          <form method="POST" action="{{ url_for('customers.restore_customer', customer_id=e.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline">{{ icon('check-circle', 14) }} Restore</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card"><div class="empty-state">
+  {{ icon('check-circle', 48) }}
+  <h3>Nothing deleted yet</h3>
+  <p>Deleted fabrics, suppliers, warehouses, workers, and customers will show up here — and can always be restored.</p>
+</div></div>
+{% endif %}
+{% endblock %}

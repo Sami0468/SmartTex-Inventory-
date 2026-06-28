@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ warehouse.name }} · SmartTex Inventory{% endblock %}
+{% block content %}
+{% if not warehouse.is_active %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  {{ icon('alert-triangle', 18) }}
+  <div>
+    This warehouse was deleted on {{ warehouse.deleted_at.strftime('%d %b %Y, %H:%M') if warehouse.deleted_at else 'an earlier date' }}
+    by {{ warehouse.deleted_by.full_name if warehouse.deleted_by else 'an admin' }}. It's hidden from active lists, but
+    kept here for your records.
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('warehouses.restore_warehouse', warehouse_id=warehouse.id) }}" style="display:inline; margin-left:8px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline" style="vertical-align:middle;">{{ icon('check-circle', 13) }} Restore</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Warehouse Detail</div>
+    <h1>{{ warehouse.name }}</h1>
+    <p class="subtitle">{{ warehouse.warehouse_code }} · {{ warehouse.location or 'No location set' }}</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('warehouses.list_warehouses') }}" class="btn btn-outline">← Back</a>
+    {% if warehouse.is_active %}
+    {% if current_user.has_role('Admin', 'Inventory Manager') %}
+    <a href="{{ url_for('warehouses.edit_warehouse', warehouse_id=warehouse.id) }}" class="btn btn-primary">{{ icon('edit', 15) }} Edit</a>
+    {% endif %}
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('warehouses.delete_warehouse', warehouse_id=warehouse.id) }}" data-confirm="Remove {{ warehouse.name }} from active warehouses? This can't be undone from the UI.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger">{{ icon('trash', 15) }} Delete</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-3" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-indigo">{{ icon('package') }}</div>
+    <div class="stat-value">{{ "%.0f"|format(warehouse.current_stock_meters) }}m</div>
+    <div class="stat-label">Current Stock</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-amber">{{ icon('warehouse') }}</div>
+    <div class="stat-value">{{ "%.0f"|format(warehouse.capacity_meters) }}m</div>
+    <div class="stat-label">Total Capacity</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-sage">{{ icon('reports') }}</div>
+    <div class="stat-value">{{ warehouse.utilization_pct }}%</div>
+    <div class="stat-label">Utilization</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Fabrics Stored Here</h3></div>
+  <div class="card-body">
+    {% if fabrics %}
+    <div class="table-wrap" style="border:none;">
+      <table class="data-table">
+        <thead><tr><th>Fabric</th><th>Code</th><th>Type</th><th>Available</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for f in fabrics %}
+          <tr>
+            <td><a href="{{ url_for('fabrics.view_fabric', fabric_id=f.id) }}" style="font-weight:600;">{{ f.name }}</a></td>
+            <td class="cell-mono">{{ f.fabric_code }}</td>
+            <td>{{ f.fabric_type }}</td>
+            <td>{{ "%.1f"|format(f.available_meters) }}m</td>
+            <td>{% if f.is_low_stock %}<span class="pill pill-danger">Low Stock</span>{% else %}<span class="pill pill-success">In Stock</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">{{ icon('fabric', 40) }}<h3>No fabrics stored here yet</h3></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

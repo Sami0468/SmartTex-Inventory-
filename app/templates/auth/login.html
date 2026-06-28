@@ -1,0 +1,33 @@
+{% extends "auth_base.html" %}
+{% block title %}Sign In · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="eyebrow" style="color:var(--color-amber-600); font-weight:700; font-size:11.5px; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">Welcome back</div>
+<h1 style="margin:0 0 6px;">Sign in to your account</h1>
+<p class="text-muted" style="margin:0 0 28px; font-size:14px;">Enter your credentials to access the inventory dashboard.</p>
+
+<form method="POST" novalidate>
+  {{ form.hidden_tag() }}
+  <div class="form-group">
+    <label class="form-label">{{ form.username.label.text }}</label>
+    {{ form.username(class="form-control", placeholder="e.g. admin or admin@smarttex.com") }}
+    {% for error in form.username.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+  </div>
+  <div class="form-group">
+    <label class="form-label">{{ form.password.label.text }}</label>
+    {{ form.password(class="form-control", placeholder="••••••••") }}
+    {% for error in form.password.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+  </div>
+  <div class="flex-between" style="margin-bottom:22px;">
+    <label class="checkbox-row">
+      {{ form.remember() }} <span class="text-muted text-sm">Remember me</span>
+    </label>
+    <a href="{{ url_for('auth.forgot_password') }}" class="text-sm" style="font-weight:600;">Forgot password?</a>
+  </div>
+  {{ form.submit(class="btn btn-accent btn-block") }}
+</form>
+
+<p class="text-sm text-muted" style="text-align:center; margin-top:24px;">
+  Don't have an account? <a href="{{ url_for('auth.register') }}" style="font-weight:700;">Create one</a>
+</p>
+
+{% endblock %}

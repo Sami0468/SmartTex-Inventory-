@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ worker.name }} · SmartTex Inventory{% endblock %}
+{% block content %}
+{% if not worker.is_active %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  {{ icon('alert-triangle', 18) }}
+  <div>
+    This worker was removed on {{ worker.deleted_at.strftime('%d %b %Y, %H:%M') if worker.deleted_at else 'an earlier date' }}
+    by {{ worker.deleted_by.full_name if worker.deleted_by else 'an admin' }}. Their attendance and payroll history is
+    kept here; they're just hidden from the active workers list.
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('workers.restore_worker', worker_id=worker.id) }}" style="display:inline; margin-left:8px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline" style="vertical-align:middle;">{{ icon('check-circle', 13) }} Restore</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Worker Detail</div>
+    <h1>{{ worker.name }}</h1>
+    <p class="subtitle">{{ worker.worker_code }} · {{ worker.department }} · {{ worker.designation or 'No designation' }}</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('workers.list_workers') }}" class="btn btn-outline">← Back</a>
+    {% if worker.is_active %}
+    {% if current_user.has_role('Admin', 'Production Manager') %}
+    <a href="{{ url_for('workers.edit_worker', worker_id=worker.id) }}" class="btn btn-primary">{{ icon('edit', 15) }} Edit</a>
+    {% endif %}
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('workers.delete_worker', worker_id=worker.id) }}" data-confirm="Remove {{ worker.name }} from active workers? This can't be undone from the UI.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger">{{ icon('trash', 15) }} Delete</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-3" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-amber">{{ icon('sales') }}</div>
+    <div class="stat-value">Rs. {{ "%.0f"|format(worker.base_salary) }}</div>
+    <div class="stat-label">Base Monthly Salary</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-sage">{{ icon('check-circle') }}</div>
+    <div class="stat-value">{{ present_count }}</div>
+    <div class="stat-label">Present (last 30 records)</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-indigo">{{ icon('reports') }}</div>
+    <div class="stat-value">{{ payroll|length }}</div>
+    <div class="stat-label">Payroll Records</div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; align-items:flex-start;">
+  <div>
+    <div class="card selvage-edge" style="margin-bottom:24px;">
+      <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Attendance History</h3></div>
+      <div class="card-body">
+        {% if attendance %}
+        <div class="table-wrap" style="border:none;">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Status</th><th>Hours</th><th>Overtime</th></tr></thead>
+            <tbody>
+              {% for a in attendance %}
+              <tr>
+                <td class="cell-muted">{{ a.date.strftime('%d %b %Y') }}</td>
+                <td>
+                  {% set pill_map = {'Present':'pill-success','Absent':'pill-danger','Half-Day':'pill-warning','Leave':'pill-info'} %}
+                  <span class="pill {{ pill_map.get(a.status, 'pill-neutral') }}">{{ a.status }}</span>
+                </td>
+                <td>{{ a.hours_worked }}h</td>
+                <td>{{ a.overtime_hours }}h</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">{{ icon('workers', 40) }}<h3>No attendance records yet</h3></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Payroll Records</h3></div>
+      <div class="card-body">
+        {% if payroll %}
+        <div class="table-wrap" style="border:none;">
+          <table class="data-table">
+            <thead><tr><th>Month</th><th>Base</th><th>Overtime</th><th>Bonus</th><th>Deductions</th><th>Net Pay</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {% for p in payroll %}
+              <tr>
+                <td class="cell-mono">{{ p.month }}</td>
+                <td>Rs. {{ "%.0f"|format(p.base_salary) }}</td>
+                <td>Rs. {{ "%.0f"|format(p.overtime_pay) }}</td>
+                <td>Rs. {{ "%.0f"|format(p.bonus) }}</td>
+                <td>Rs. {{ "%.0f"|format(p.deductions) }}</td>
+                <td><strong>Rs. {{ "%.0f"|format(p.net_pay) }}</strong></td>
+                <td>{% if p.is_paid %}<span class="pill pill-success">Paid</span>{% else %}<span class="pill pill-warning">Unpaid</span>{% endif %}</td>
+                <td style="text-align:right;">
+                  {% if not p.is_paid and current_user.has_role('Admin', 'Production Manager') %}
+                  <form method="POST" action="{{ url_for('workers.mark_payroll_paid', payroll_id=p.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-sm btn-outline">Mark Paid</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">{{ icon('reports', 40) }}<h3>No payroll generated yet</h3></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if current_user.has_role('Admin', 'Production Manager') and worker.is_active %}
+  <div>
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 16px;">Mark Attendance</h3>
+        <form method="POST" action="{{ url_for('workers.mark_attendance', worker_id=worker.id) }}">
+          {{ attendance_form.hidden_tag() }}
+          <div class="form-group">
+            <label class="form-label">{{ attendance_form.date.label.text }}</label>
+            {{ attendance_form.date(class="form-control") }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ attendance_form.status.label.text }}</label>
+            {{ attendance_form.status(class="form-control") }}
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">{{ attendance_form.hours_worked.label.text }}</label>
+              {{ attendance_form.hours_worked(class="form-control", placeholder="8") }}
+            </div>
+            <div class="form-group">
+              <label class="form-label">{{ attendance_form.overtime_hours.label.text }}</label>
+              {{ attendance_form.overtime_hours(class="form-control", placeholder="0") }}
+            </div>
+          </div>
+          {{ attendance_form.submit(class="btn btn-primary btn-block") }}
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 16px;">Generate Payroll</h3>
+        <form method="POST" action="{{ url_for('workers.generate_payroll', worker_id=worker.id) }}">
+          {{ payroll_form.hidden_tag() }}
+          <div class="form-group">
+            <label class="form-label">{{ payroll_form.month.label.text }}</label>
+            {{ payroll_form.month(class="form-control", placeholder="2026-06") }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ payroll_form.overtime_pay.label.text }}</label>
+            {{ payroll_form.overtime_pay(class="form-control", placeholder="0") }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ payroll_form.bonus.label.text }}</label>
+            {{ payroll_form.bonus(class="form-control", placeholder="0") }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ payroll_form.deductions.label.text }}</label>
+            {{ payroll_form.deductions(class="form-control", placeholder="0") }}
+          </div>
+          {{ payroll_form.submit(class="btn btn-accent btn-block") }}
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

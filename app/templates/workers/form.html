@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Worker · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><div class="eyebrow">Operations</div><h1>{{ 'Edit Worker' if mode == 'edit' else 'Add New Worker' }}</h1></div>
+  <a href="{{ url_for('workers.list_workers') }}" class="btn btn-outline">← Back</a>
+</div>
+<div class="card selvage-edge" style="max-width:600px;">
+  <div class="card-body">
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="form-group">
+        <label class="form-label">{{ form.name.label.text }} <span class="req">*</span></label>
+        {{ form.name(class="form-control") }}
+        {% for error in form.name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">{{ form.cnic.label.text }}</label>
+          {{ form.cnic(class="form-control", placeholder="xxxxx-xxxxxxx-x") }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.phone.label.text }}</label>
+          {{ form.phone(class="form-control") }}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">{{ form.department.label.text }} <span class="req">*</span></label>
+          {{ form.department(class="form-control") }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.designation.label.text }}</label>
+          {{ form.designation(class="form-control", placeholder="e.g. Senior Tailor") }}
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">{{ form.base_salary.label.text }} <span class="req">*</span></label>
+          {{ form.base_salary(class="form-control") }}
+          {% for error in form.base_salary.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.date_joined.label.text }}</label>
+          {{ form.date_joined(class="form-control") }}
+        </div>
+      </div>
+      {{ form.submit(class="btn btn-accent") }}
+    </form>
+  </div>
+</div>
+{% endblock %}

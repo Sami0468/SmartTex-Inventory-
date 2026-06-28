@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Customer · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><div class="eyebrow">Commerce</div><h1>{{ 'Edit Customer' if mode == 'edit' else 'Add New Customer' }}</h1></div>
+  <a href="{{ url_for('customers.list_customers') }}" class="btn btn-outline">← Back</a>
+</div>
+<div class="card selvage-edge" style="max-width:560px;">
+  <div class="card-body">
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="form-group">
+        <label class="form-label">{{ form.name.label.text }} <span class="req">*</span></label>
+        {{ form.name(class="form-control") }}
+        {% for error in form.name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ form.company_name.label.text }}</label>
+        {{ form.company_name(class="form-control") }}
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">{{ form.phone.label.text }}</label>
+          {{ form.phone(class="form-control") }}
+        </div>
+        <div class="form-group">
+          <label class="form-label">{{ form.email.label.text }}</label>
+          {{ form.email(class="form-control") }}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ form.address.label.text }}</label>
+        {{ form.address(class="form-control") }}
+      </div>
+      {{ form.submit(class="btn btn-accent") }}
+    </form>
+  </div>
+</div>
+{% endblock %}

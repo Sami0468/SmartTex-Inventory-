@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if mode == 'edit' else 'Add' }} Warehouse · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Inventory</div>
+    <h1>{{ 'Edit Warehouse' if mode == 'edit' else 'Add New Warehouse' }}</h1>
+  </div>
+  <a href="{{ url_for('warehouses.list_warehouses') }}" class="btn btn-outline">← Back</a>
+</div>
+<div class="card selvage-edge" style="max-width:520px;">
+  <div class="card-body">
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+      <div class="form-group">
+        <label class="form-label">{{ form.name.label.text }} <span class="req">*</span></label>
+        {{ form.name(class="form-control") }}
+        {% for error in form.name.errors %}<div class="form-error">{{ error }}</div>{% endfor %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ form.location.label.text }}</label>
+        {{ form.location(class="form-control") }}
+      </div>
+      <div class="form-group">
+        <label class="form-label">{{ form.capacity_meters.label.text }}</label>
+        {{ form.capacity_meters(class="form-control", placeholder="e.g. 5000") }}
+      </div>
+      {{ form.submit(class="btn btn-accent") }}
+    </form>
+  </div>
+</div>
+{% endblock %}

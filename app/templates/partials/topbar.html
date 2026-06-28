@@ -1,0 +1,43 @@
+{% from "partials/icons.html" import icon %}
+<header class="topbar">
+  <div class="flex gap-3" style="align-items:center;">
+    <button class="mobile-menu-btn">{{ icon('menu') }}</button>
+    <div class="topbar-search">
+      {{ icon('search', 16) }}
+      <input type="text" placeholder="Search fabrics, suppliers, orders...">
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <div style="position:relative;">
+      <button class="icon-btn" data-dropdown-toggle="notif-dropdown">
+        {{ icon('bell') }}
+        {% if unread_notifications and unread_notifications > 0 %}<span class="badge-dot"></span>{% endif %}
+      </button>
+      <div id="notif-dropdown" class="dropdown-menu" style="position:absolute; right:0; top:46px; width:320px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); display:none; z-index:50; max-height:380px; overflow-y:auto;">
+        <div style="padding:14px 16px; border-bottom:1px solid var(--border-subtle); font-weight:700; font-size:13px;">Notifications</div>
+        <a href="{{ url_for('notifications.list_notifications') }}" style="display:block; padding:12px 16px; font-size:12.5px; color:var(--color-indigo-800); font-weight:600;">View all notifications →</a>
+      </div>
+    </div>
+
+    <div style="position:relative;">
+      <div class="user-chip" data-dropdown-toggle="user-dropdown">
+        <div class="avatar-circle">{{ current_user.initials }}</div>
+        <div>
+          <div class="uname">{{ current_user.full_name }}</div>
+          <div class="urole">{{ current_user.role }}</div>
+        </div>
+        {{ icon('chevron-down', 14) }}
+      </div>
+      <div id="user-dropdown" class="dropdown-menu" style="position:absolute; right:0; top:50px; width:200px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); display:none; z-index:50; overflow:hidden;">
+        <a href="{{ url_for('auth.profile') }}" style="display:flex; align-items:center; gap:8px; padding:11px 16px; font-size:13px; color:var(--text-primary);">{{ icon('user', 15) }} My Profile</a>
+        <a href="{{ url_for('auth.change_password') }}" style="display:flex; align-items:center; gap:8px; padding:11px 16px; font-size:13px; color:var(--text-primary);">{{ icon('edit', 15) }} Change Password</a>
+        <div class="thread-divider" style="margin:0;"></div>
+        <a href="{{ url_for('auth.logout') }}" style="display:flex; align-items:center; gap:8px; padding:11px 16px; font-size:13px; color:var(--danger);">{{ icon('logout', 15) }} Sign Out</a>
+      </div>
+    </div>
+  </div>
+</header>
+<style>
+.dropdown-menu.open { display: block !important; }
+</style>

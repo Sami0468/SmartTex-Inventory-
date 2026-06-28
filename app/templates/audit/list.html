@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}Audit Logs · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">System</div>
+    <h1>Audit Logs</h1>
+    <p class="subtitle">{{ pagination.total }} recorded action{{ 's' if pagination.total != 1 }}.</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-body" style="padding:16px 20px;">
+    <form method="GET">
+      <select class="form-control" name="module" style="max-width:240px;" onchange="this.form.submit()">
+        <option value="">All Modules</option>
+        {% for m in modules %}<option value="{{ m }}" {{ 'selected' if m == module_filter }}>{{ m }}</option>{% endfor %}
+      </select>
+    </form>
+  </div>
+</div>
+
+{% if logs %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Date / Time</th><th>User</th><th>Action</th><th>Module</th><th>Description</th></tr></thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td class="cell-muted">{{ log.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+        <td>{{ log.user.full_name if log.user else 'System' }}</td>
+        <td>
+          {% set pill_map = {'CREATE':'pill-success','UPDATE':'pill-info','DELETE':'pill-danger','LOGIN':'pill-neutral','LOGOUT':'pill-neutral'} %}
+          <span class="pill {{ pill_map.get(log.action, 'pill-neutral') }}">{{ log.action }}</span>
+        </td>
+        <td>{{ log.module }}</td>
+        <td class="cell-muted">{{ log.description or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if pagination.pages > 1 %}
+<div class="flex gap-2" style="justify-content:center; margin-top:24px;">
+  {% for p in range(1, pagination.pages + 1) %}
+  <a href="{{ url_for('audit.list_logs', page=p, module=module_filter) }}" class="btn btn-sm {{ 'btn-primary' if p == pagination.page else 'btn-outline' }}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+{% else %}
+<div class="card"><div class="empty-state">{{ icon('audit', 48) }}<h3>No audit logs yet</h3></div></div>
+{% endif %}
+{% endblock %}

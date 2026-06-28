@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ fabric.name }} · SmartTex Inventory{% endblock %}
+{% block content %}
+{% if not fabric.is_active %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  {{ icon('alert-triangle', 18) }}
+  <div>
+    This fabric was deleted on {{ fabric.deleted_at.strftime('%d %b %Y, %H:%M') if fabric.deleted_at else 'an earlier date' }}
+    by {{ fabric.deleted_by.full_name if fabric.deleted_by else 'an admin' }}. It's hidden from active inventory and
+    dropdowns, but kept here — and in any past orders that reference it — for your records.
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('fabrics.restore_fabric', fabric_id=fabric.id) }}" style="display:inline; margin-left:8px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline" style="vertical-align:middle;">{{ icon('check-circle', 13) }} Restore</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Fabric Detail</div>
+    <h1>{{ fabric.name }}</h1>
+    <p class="subtitle">Code: <span class="mono">{{ fabric.fabric_code }}</span> · {{ fabric.fabric_type }}{% if fabric.gsm %} · {{ fabric.gsm }}gsm{% endif %}</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('fabrics.list_fabrics') }}" class="btn btn-outline">← Back</a>
+    {% if fabric.is_active %}
+    {% if current_user.has_role('Admin', 'Inventory Manager') %}
+    <a href="{{ url_for('fabrics.edit_fabric', fabric_id=fabric.id) }}" class="btn btn-primary">{{ icon('edit', 15) }} Edit</a>
+    {% endif %}
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('fabrics.delete_fabric', fabric_id=fabric.id) }}" data-confirm="Remove {{ fabric.name }} ({{ fabric.fabric_code }}) from active inventory? This can't be undone from the UI.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger">{{ icon('trash', 15) }} Delete</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-4" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-sage">{{ icon('package') }}</div>
+    <div class="stat-value">{{ "%.1f"|format(fabric.available_meters) }}m</div>
+    <div class="stat-label">Available Stock</div>
+    {% if fabric.is_low_stock %}<span class="stat-delta down">{{ icon('alert-triangle', 12) }} Below threshold</span>{% endif %}
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-indigo">{{ icon('fabric') }}</div>
+    <div class="stat-value">{{ "%.1f"|format(fabric.quantity_meters) }}m</div>
+    <div class="stat-label">Total Recorded Stock</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-amber">{{ icon('sales') }}</div>
+    <div class="stat-value">Rs. {{ "%.0f"|format(fabric.stock_value) }}</div>
+    <div class="stat-label">Stock Value (at cost)</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-terracotta">{{ icon('alert-triangle') }}</div>
+    <div class="stat-value">{{ "%.1f"|format(fabric.damaged_meters) }}m</div>
+    <div class="stat-label">Damaged Stock</div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns: 2fr 1fr; align-items:flex-start;">
+  <div>
+    <div class="card selvage-edge" style="margin-bottom:24px;">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 16px;">Specifications</h3>
+        <div class="grid grid-cols-3" style="gap:16px;">
+          <div><div class="text-sm text-muted">Color</div><div style="font-weight:600;">{{ fabric.color or '—' }}</div></div>
+          <div><div class="text-sm text-muted">Pattern</div><div style="font-weight:600;">{{ fabric.pattern or '—' }}</div></div>
+          <div><div class="text-sm text-muted">Width</div><div style="font-weight:600;">{{ fabric.width_inches or '—' }}{% if fabric.width_inches %}"{% endif %}</div></div>
+          <div><div class="text-sm text-muted">Roll Number</div><div style="font-weight:600;">{{ fabric.roll_number or '—' }}</div></div>
+          <div><div class="text-sm text-muted">Unit Cost</div><div style="font-weight:600;">Rs. {{ "%.2f"|format(fabric.unit_cost) }}/m</div></div>
+          <div><div class="text-sm text-muted">Selling Price</div><div style="font-weight:600;">Rs. {{ "%.2f"|format(fabric.selling_price) }}/m</div></div>
+          <div><div class="text-sm text-muted">Warehouse</div><div style="font-weight:600;">{{ fabric.warehouse.name if fabric.warehouse else '—' }}</div></div>
+          <div><div class="text-sm text-muted">Supplier</div><div style="font-weight:600;">{{ fabric.supplier.company_name if fabric.supplier else '—' }}</div></div>
+          <div><div class="text-sm text-muted">Date Added</div><div style="font-weight:600;">{{ fabric.date_added.strftime('%d %b %Y') }}</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header-flat">
+        <h3 style="font-size:15px; margin:0;">Stock Movement History</h3>
+      </div>
+      <div class="card-body">
+        {% if movements %}
+        <div class="table-wrap" style="border:none;">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Type</th><th>Quantity</th><th>Reference / Note</th><th>By</th></tr></thead>
+            <tbody>
+              {% for m in movements %}
+              <tr>
+                <td class="cell-muted">{{ m.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+                <td>
+                  {% set pill_map = {'IN':'pill-success','OUT':'pill-warning','DAMAGE':'pill-danger','TRANSFER':'pill-info','ADJUSTMENT':'pill-neutral','PRODUCTION_USE':'pill-info'} %}
+                  <span class="pill {{ pill_map.get(m.movement_type, 'pill-neutral') }}">{{ m.movement_type }}</span>
+                </td>
+                <td><strong>{{ "%.1f"|format(m.quantity_meters) }}m</strong></td>
+                <td class="cell-muted">{{ m.reference or m.note or '—' }}</td>
+                <td class="cell-muted">{{ m.performed_by.full_name if m.performed_by else 'System' }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">{{ icon('reports', 40) }}<h3>No movements yet</h3></div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    {% if fabric.qr_code_path or fabric.barcode_path %}
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-body" style="text-align:center;">
+        <h3 style="font-size:15px; margin:0 0 16px;">{{ icon('qrcode', 16) }} Identification</h3>
+        {% if fabric.qr_code_path %}
+        <img src="{{ url_for('static', filename=fabric.qr_code_path) }}" alt="QR Code" style="width:140px; height:140px; margin-bottom:12px;">
+        {% endif %}
+        {% if fabric.barcode_path %}
+        <img src="{{ url_for('static', filename=fabric.barcode_path) }}" alt="Barcode" style="max-width:100%; margin-bottom:8px;">
+        {% endif %}
+        <div class="text-sm text-muted mono">{{ fabric.fabric_code }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if current_user.has_role('Admin', 'Inventory Manager') and fabric.is_active %}
+    <div class="card" style="margin-bottom:24px;">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 16px;">Adjust Stock</h3>
+        <form method="POST" action="{{ url_for('fabrics.adjust_stock', fabric_id=fabric.id) }}">
+          {{ adjustment_form.hidden_tag() }}
+          <div class="form-group">
+            {{ adjustment_form.movement_type(class="form-control") }}
+          </div>
+          <div class="form-group">
+            {{ adjustment_form.quantity_meters(class="form-control", placeholder="Quantity in meters") }}
+          </div>
+          <div class="form-group">
+            {{ adjustment_form.note(class="form-control", placeholder="Reason (optional)") }}
+          </div>
+          {{ adjustment_form.submit(class="btn btn-primary btn-block") }}
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <h3 style="font-size:15px; margin:0 0 16px;">{{ icon('truck', 16) }} Transfer Between Warehouses</h3>
+        {% if transfer_form.to_warehouse_id.choices %}
+        <form method="POST" action="{{ url_for('fabrics.transfer_stock', fabric_id=fabric.id) }}">
+          {{ transfer_form.hidden_tag() }}
+          <div class="form-group">
+            <label class="form-label">{{ transfer_form.to_warehouse_id.label.text }}</label>
+            {{ transfer_form.to_warehouse_id(class="form-control") }}
+          </div>
+          <div class="form-group">
+            <label class="form-label">{{ transfer_form.quantity_meters.label.text }}</label>
+            {{ transfer_form.quantity_meters(class="form-control", placeholder="Quantity in meters") }}
+          </div>
+          <div class="form-group">
+            {{ transfer_form.note(class="form-control", placeholder="Note (optional)") }}
+          </div>
+          {{ transfer_form.submit(class="btn btn-outline btn-block") }}
+        </form>
+        {% else %}
+        <p class="text-muted text-sm">No other warehouses available for transfer.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

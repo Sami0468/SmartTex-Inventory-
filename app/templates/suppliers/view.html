@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ supplier.company_name }} · SmartTex Inventory{% endblock %}
+{% block content %}
+{% if not supplier.is_active %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  {{ icon('alert-triangle', 18) }}
+  <div>
+    This supplier was deleted on {{ supplier.deleted_at.strftime('%d %b %Y, %H:%M') if supplier.deleted_at else 'an earlier date' }}
+    by {{ supplier.deleted_by.full_name if supplier.deleted_by else 'an admin' }}. It's hidden from active lists and
+    dropdowns, but kept here — and in any past purchase orders — for your records.
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('suppliers.restore_supplier', supplier_id=supplier.id) }}" style="display:inline; margin-left:8px;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-sm btn-outline" style="vertical-align:middle;">{{ icon('check-circle', 13) }} Restore</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Supplier Detail</div>
+    <h1>{{ supplier.company_name }}</h1>
+    <p class="subtitle">{{ supplier.supplier_code }} · {{ supplier.country or 'No country set' }}</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('suppliers.list_suppliers') }}" class="btn btn-outline">← Back</a>
+    {% if supplier.is_active %}
+    {% if current_user.has_role('Admin', 'Inventory Manager') %}
+    <a href="{{ url_for('suppliers.edit_supplier', supplier_id=supplier.id) }}" class="btn btn-primary">{{ icon('edit', 15) }} Edit</a>
+    <a href="{{ url_for('suppliers.new_purchase_order', supplier_id=supplier.id) }}" class="btn btn-accent">{{ icon('plus', 15) }} New Purchase Order</a>
+    {% endif %}
+    {% if current_user.is_admin %}
+    <form method="POST" action="{{ url_for('suppliers.delete_supplier', supplier_id=supplier.id) }}" data-confirm="Remove {{ supplier.company_name }} from active suppliers? This can't be undone from the UI.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger">{{ icon('trash', 15) }} Delete</button>
+    </form>
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid grid-cols-4" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-amber">{{ icon('sales') }}</div>
+    <div class="stat-value">Rs. {{ "%.0f"|format(supplier.total_purchase_value) }}</div>
+    <div class="stat-label">Total Purchase Value</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-indigo">{{ icon('reports') }}</div>
+    <div class="stat-value">{{ purchase_orders|length }}</div>
+    <div class="stat-label">Purchase Orders</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-sage">{{ icon('truck') }}</div>
+    <div class="stat-value">{{ supplier.on_time_delivery_rate if supplier.on_time_delivery_rate is not none else '—' }}{% if supplier.on_time_delivery_rate is not none %}%{% endif %}</div>
+    <div class="stat-label">On-Time Delivery Rate</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon icon-bg-terracotta">★</div>
+    <div class="stat-value">{{ "%.1f"|format(supplier.rating) }}/5</div>
+    <div class="stat-label">Supplier Rating</div>
+  </div>
+</div>
+
+<div class="card selvage-edge" style="margin-bottom:24px;">
+  <div class="card-body">
+    <h3 style="font-size:15px; margin:0 0 16px;">Contact Information</h3>
+    <div class="grid grid-cols-3">
+      <div><div class="text-sm text-muted">Contact Person</div><div style="font-weight:600;">{{ supplier.contact_person or '—' }}</div></div>
+      <div><div class="text-sm text-muted">Phone</div><div style="font-weight:600;">{{ supplier.phone or '—' }}</div></div>
+      <div><div class="text-sm text-muted">Email</div><div style="font-weight:600;">{{ supplier.email or '—' }}</div></div>
+      <div><div class="text-sm text-muted">Address</div><div style="font-weight:600;">{{ supplier.address or '—' }}</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:24px;">
+  <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Purchase History</h3></div>
+  <div class="card-body">
+    {% if purchase_orders %}
+    <div class="table-wrap" style="border:none;">
+      <table class="data-table">
+        <thead><tr><th>PO Number</th><th>Order Date</th><th>Status</th><th>Payment</th><th>Total</th><th></th></tr></thead>
+        <tbody>
+          {% for po in purchase_orders %}
+          <tr>
+            <td class="cell-mono">{{ po.po_number }}</td>
+            <td class="cell-muted">{{ po.order_date.strftime('%d %b %Y') if po.order_date }}</td>
+            <td>
+              {% set pill_map = {'Pending':'pill-warning','Ordered':'pill-info','Received':'pill-success','Cancelled':'pill-danger'} %}
+              <span class="pill {{ pill_map.get(po.status, 'pill-neutral') }}">{{ po.status }}</span>
+            </td>
+            <td>
+              {% set pay_map = {'Unpaid':'pill-danger','Partial':'pill-warning','Paid':'pill-success'} %}
+              <span class="pill {{ pay_map.get(po.payment_status, 'pill-neutral') }}">{{ po.payment_status }}</span>
+            </td>
+            <td><strong>Rs. {{ "%.0f"|format(po.total_amount) }}</strong></td>
+            <td style="text-align:right;"><a href="{{ url_for('suppliers.view_purchase_order', po_id=po.id) }}" class="icon-btn">{{ icon('eye', 16) }}</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">{{ icon('reports', 40) }}<h3>No purchase orders yet</h3></div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header-flat"><h3 style="font-size:15px; margin:0;">Fabrics Supplied</h3></div>
+  <div class="card-body">
+    {% if fabrics %}
+    <div class="table-wrap" style="border:none;">
+      <table class="data-table">
+        <thead><tr><th>Fabric</th><th>Code</th><th>Available</th></tr></thead>
+        <tbody>
+          {% for f in fabrics %}
+          <tr><td>{{ f.name }}</td><td class="cell-mono">{{ f.fabric_code }}</td><td>{{ "%.1f"|format(f.available_meters) }}m</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted text-sm">No fabrics currently linked to this supplier.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

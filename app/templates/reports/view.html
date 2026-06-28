@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "partials/icons.html" import icon %}
+{% block title %}{{ title }} · SmartTex Inventory{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="eyebrow">Insights</div>
+    <h1>{{ title }}</h1>
+    <p class="subtitle">{{ rows|length }} record{{ 's' if rows|length != 1 }} found.</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('reports.index') }}" class="btn btn-outline">← Back</a>
+    <a href="{{ url_for('reports.export_report', report_type=report_type, fmt='pdf') }}" class="btn btn-primary">{{ icon('download', 15) }} PDF</a>
+    <a href="{{ url_for('reports.export_report', report_type=report_type, fmt='excel') }}" class="btn btn-primary">{{ icon('download', 15) }} Excel</a>
+    <a href="{{ url_for('reports.export_report', report_type=report_type, fmt='csv') }}" class="btn btn-primary">{{ icon('download', 15) }} CSV</a>
+  </div>
+</div>
+
+{% if rows %}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr>{% for h in headers %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card"><div class="empty-state">{{ icon('reports', 48) }}<h3>No data available</h3><p>This report will populate as you add data to the system.</p></div></div>
+{% endif %}
+{% endblock %}
